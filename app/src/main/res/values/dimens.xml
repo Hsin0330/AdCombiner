@@ -2,4 +2,22 @@
     <!-- Default screen margins, per the Android Design guidelines. -->
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="toolbar_height">@dimen/gap_7x</dimen>
+
+
+    <dimen name="gap_05x">4dp</dimen>
+    <dimen name="gap_1x">8dp</dimen>
+    <dimen name="gap_2x">16dp</dimen>
+    <dimen name="gap_3x">24dp</dimen>
+    <dimen name="gap_4x">32dp</dimen>
+    <dimen name="gap_5x">40dp</dimen>
+    <dimen name="gap_6x">48dp</dimen>
+    <dimen name="gap_7x">56dp</dimen>
+    <dimen name="gap_8x">64dp</dimen>
+    <dimen name="gap_9x">72dp</dimen>
+    <dimen name="gap_10x">80dp</dimen>
+    <dimen name="gap_11x">88dp</dimen>
+    <dimen name="gap_12x">96dp</dimen>
+    <dimen name="gap_13x">104dp</dimen>
 </resources>

@@ -3,6 +3,8 @@ package com.symhung.adcombiner.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.symhung.adcombiner.utilities.json.JSONReader;
+
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -13,7 +15,7 @@ import java.util.List;
  * Created by HsinHung on 2016/12/27.
  */
 
-public class TravelLocation implements Parcelable{
+public class TravelLocation implements Parcelable, JSONReader{
 
     private String id;
     private String rowNumber;
@@ -37,29 +39,7 @@ public class TravelLocation implements Parcelable{
     private String latitude;
     private String mrt;
 
-    public TravelLocation(JSONObject jsonObject) {
-
-        id = jsonObject.optString("_id");
-        rowNumber = jsonObject.optString("RowNumber");
-        refWp = jsonObject.optString("REF_WP");
-        cat1 = jsonObject.optString("CAT1");
-        cat2 = jsonObject.optString("CAT2");
-        serialNo = jsonObject.optString("SERIAL_NO");
-        memoTime = jsonObject.optString("MEMO_TIME");
-        title = jsonObject.optString("stitle");
-        body = jsonObject.optString("xbody");
-        begin = jsonObject.optString("avBegin");
-        end = jsonObject.optString("abEnd");
-        idpt = jsonObject.optString("idpt");
-        address = jsonObject.optString("address");
-        postDate = jsonObject.optString("xpostDate");
-        files = new ArrayList<>(Arrays.asList(jsonObject.optString("file").toLowerCase().split(".jpg")));
-        langInfo = jsonObject.optString("langinfo");
-        poi = jsonObject.optString("POI");
-        trafficInfo = jsonObject.optString("info");
-        longitude = jsonObject.optString("longitude");
-        latitude = jsonObject.optString("latitude");
-        mrt = jsonObject.optString("MRT");
+    public TravelLocation() {
     }
 
     protected TravelLocation(Parcel in) {
@@ -210,5 +190,33 @@ public class TravelLocation implements Parcelable{
 
     public String getMrt() {
         return mrt;
+    }
+
+    @Override
+    public Object read(JSONObject jsonObject) {
+
+        id = jsonObject.optString("_id");
+        rowNumber = jsonObject.optString("RowNumber");
+        refWp = jsonObject.optString("REF_WP");
+        cat1 = jsonObject.optString("CAT1");
+        cat2 = jsonObject.optString("CAT2");
+        serialNo = jsonObject.optString("SERIAL_NO");
+        memoTime = jsonObject.optString("MEMO_TIME");
+        title = jsonObject.optString("stitle");
+        body = jsonObject.optString("xbody");
+        begin = jsonObject.optString("avBegin");
+        end = jsonObject.optString("abEnd");
+        idpt = jsonObject.optString("idpt");
+        address = jsonObject.optString("address");
+        postDate = jsonObject.optString("xpostDate");
+        files = new ArrayList<>(Arrays.asList(jsonObject.optString("file").toLowerCase().split(".jpg")));
+        langInfo = jsonObject.optString("langinfo");
+        poi = jsonObject.optString("POI");
+        trafficInfo = jsonObject.optString("info");
+        longitude = jsonObject.optString("longitude");
+        latitude = jsonObject.optString("latitude");
+        mrt = jsonObject.optString("MRT");
+
+        return this;
     }
 }

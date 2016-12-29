@@ -8,6 +8,11 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 
+import com.mopub.nativeads.MoPubNativeAdPositioning;
+import com.mopub.nativeads.MoPubRecyclerAdapter;
+import com.mopub.nativeads.MoPubStaticNativeAdRenderer;
+import com.mopub.nativeads.RequestParameters;
+import com.mopub.nativeads.ViewBinder;
 import com.symhung.adcombiner.base.BaseActivity;
 import com.symhung.adcombiner.models.TravelLocation;
 import com.symhung.adcombiner.network.handlers.ResponseHandler;
@@ -18,9 +23,12 @@ import java.util.List;
 
 public class MainActivity extends BaseActivity {
 
+    private static final String MY_AD_UNIT_ID = "e49a61c44e9a4bd0982dcaeb085759b2";
+
     private Toolbar toolbar;
     private RecyclerView recyclerView;
 
+    private MoPubRecyclerAdapter moPubRecyclerAdapter;
     private TravelLocationAdapter adapter;
 
     @Override
@@ -32,6 +40,19 @@ public class MainActivity extends BaseActivity {
         queryData();
     }
 
+    @Override
+    protected void onResume() {
+        // Request ads when the user returns to this activity.
+        moPubRecyclerAdapter.loadAds(MY_AD_UNIT_ID);
+        super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        moPubRecyclerAdapter.destroy();
+        super.onDestroy();
+    }
+
     private void initViews() {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -40,7 +61,23 @@ public class MainActivity extends BaseActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setItemAnimator(new DefaultItemAnimator());
 
-        recyclerView.setAdapter(adapter = new TravelLocationAdapter(this, new ArrayList<TravelLocation>()));
+        adapter = new TravelLocationAdapter(this, new ArrayList<TravelLocation>());
+        ViewBinder viewBinder = new ViewBinder.Builder(R.layout.native_ad_layout)
+                .mainImageId(R.id.native_ad_main_image)
+                .iconImageId(R.id.native_ad_icon_image)
+                .titleId(R.id.native_ad_title)
+                .textId(R.id.native_ad_text)
+                .privacyInformationIconImageId(R.id.native_ad_privacy_information_icon_image)
+                .build();
+        MoPubNativeAdPositioning.MoPubServerPositioning adPositioning =
+                MoPubNativeAdPositioning.serverPositioning();
+        MoPubStaticNativeAdRenderer adRenderer = new MoPubStaticNativeAdRenderer(viewBinder);
+
+        moPubRecyclerAdapter = new MoPubRecyclerAdapter(this, adapter, adPositioning);
+        moPubRecyclerAdapter.registerAdRenderer(adRenderer);
+
+
+        recyclerView.setAdapter(moPubRecyclerAdapter);
     }
 
     private void queryData() {

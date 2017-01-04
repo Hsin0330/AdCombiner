@@ -69,9 +69,11 @@ public class MainActivity extends BaseActivity {
                 .textId(R.id.native_ad_text)
                 .privacyInformationIconImageId(R.id.native_ad_privacy_information_icon_image)
                 .build();
-        MoPubNativeAdPositioning.MoPubServerPositioning adPositioning =
-                MoPubNativeAdPositioning.serverPositioning();
+//        MoPubNativeAdPositioning.MoPubServerPositioning adPositioning =
+//                MoPubNativeAdPositioning.serverPositioning();
         MoPubStaticNativeAdRenderer adRenderer = new MoPubStaticNativeAdRenderer(viewBinder);
+
+        MoPubNativeAdPositioning.MoPubClientPositioning adPositioning = MoPubNativeAdPositioning.clientPositioning().addFixedPosition(0).enableRepeatingPositions(5);
 
         moPubRecyclerAdapter = new MoPubRecyclerAdapter(this, adapter, adPositioning);
         moPubRecyclerAdapter.registerAdRenderer(adRenderer);

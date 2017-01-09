@@ -249,68 +249,22 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         }
     }
 
-    /**
-     * Stops loading ads, immediately clearing any ads currently in the stream.
-     *
-     * This method also stops ads from loading as the user moves through the stream. When ads
-     * are cleared, {@link TransferAdLoadedListener#onAdRemoved} will be called for each ad
-     * that is removed from the stream.
-     */
     public void clearAds() {
         transferAdPlacer.clearAds();
     }
 
-    /**
-     * Whether the given position is an ad.
-     *
-     * This will return {@code true} only if there is an ad loaded for this position. You can also
-     * listen for ads to load using {@link TransferAdLoadedListener#onAdLoaded(int)}.
-     *
-     * @param position The position to check for an ad, expressed in terms of the position in the
-     * stream including ads.
-     * @return Whether there is an ad at the given position.
-     */
     public boolean isAd(final int position) {
         return transferAdPlacer.isAd(position);
     }
 
-    /**
-     * Returns the position of an item considering ads in the stream.
-     *
-     * @see {@link TransferAdPlacer#getAdjustedPosition(int)}
-     * @param originalPosition The original position.
-     * @return The position adjusted by placing ads.
-     */
     public int getAdjustedPosition(final int originalPosition) {
         return transferAdPlacer.getAdjustedPosition(originalPosition);
     }
 
-    /**
-     * Returns the original position of an item considering ads in the stream.
-     *
-     * @see {@link TransferAdPlacer#getOriginalPosition(int)}
-     * @param position The adjusted position.
-     * @return The original position before placing ads.
-     */
     public int getOriginalPosition(final int position) {
         return transferAdPlacer.getOriginalPosition(position);
     }
 
-    /**
-     * Sets the strategy this adapter should use for moving ads when content is added or removed
-     * from the wrapped original adapter. This strategy can be set at any time to change the
-     * behavior of the adapter.
-     * <ul>
-     * <li>{@link com.mopub.nativeads.MoPubRecyclerAdapter.ContentChangeStrategy#INSERT_AT_END}
-     *     will insert ads when content is added to the end of the stream. This is the default behavior
-     *     and the recommended strategy.</li>
-     * <li>{@link com.mopub.nativeads.MoPubRecyclerAdapter.ContentChangeStrategy#MOVE_ALL_ADS_WITH_CONTENT}
-     *     will cause all ad positions after an insertion or deletion to be adjusted. New
-     *     ads will not be displayed when items are added to the end of the stream.</li>
-     * <li>{@link com.mopub.nativeads.MoPubRecyclerAdapter.ContentChangeStrategy#KEEP_ADS_FIXED}
-     *     will never adjust ad positions when items are inserted or removed.</li>
-     * </ul>
-     */
     public void setContentChangeStrategy(ContentChangeStrategy strategy) {
         mStrategy = strategy;
     }

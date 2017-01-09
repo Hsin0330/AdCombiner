@@ -19,12 +19,8 @@ class TransferPlacementData {
      */
     public final static int NOT_FOUND = -1;
 
-    // Cap the number of ads to avoid unrestrained memory usage. 200 allows the 5 positioning
-    // arrays to fit in less than 4K.
     private final static int MAX_ADS = 200;
 
-    // Initialize all of these to their max capacity. This prevents garbage collection when
-    // reallocating the list, which causes noticeable stuttering when scrolling on some devices.
     private final int[] desiredOriginalPositions = new int[MAX_ADS];
     private final int[] desiredInsertionPositions = new int[MAX_ADS];
     private int desiredCount = 0;
@@ -72,18 +68,11 @@ class TransferPlacementData {
         return new TransferPlacementData(new int[] {});
     }
 
-    /**
-     * Whether the given position should be an ad.
-     */
     boolean shouldPlaceAd(final int position) {
         final int index = binarySearch(desiredInsertionPositions, 0, desiredCount, position);
         return index >= 0;
     }
 
-    /**
-     * The next position after this position that should be an ad. Returns NOT_FOUND if there are no
-     * more ads.
-     */
     int nextInsertionPosition(final int position) {
         final int index = binarySearchGreaterThan(
                 desiredInsertionPositions, desiredCount, position);
@@ -93,10 +82,6 @@ class TransferPlacementData {
         return desiredInsertionPositions[index];
     }
 
-    /**
-     * The next position after this position that should be an ad. Returns NOT_FOUND if there
-     * are no more ads.
-     */
     int previousInsertionPosition(final int position) {
         final int index = binarySearchFirstEquals(
                 desiredInsertionPositions, desiredCount, position);
@@ -106,9 +91,6 @@ class TransferPlacementData {
         return desiredInsertionPositions[index - 1];
     }
 
-    /**
-     * Sets ad data at the given position.
-     */
     void placeAd(final int adjustedPosition, final TransferAd nativeAd) {
         // See if this is a insertion ad
         final int desiredIndex = binarySearchFirstEquals(
@@ -153,18 +135,11 @@ class TransferPlacementData {
         }
     }
 
-    /**
-     * @see {@link com.mopub.nativeads.MoPubStreamAdPlacer#isAd(int)}
-     */
     boolean isPlacedAd(final int position) {
         final int index = binarySearch(adjustedAdPositions, 0, placedCount, position);
         return index >= 0;
     }
 
-    /**
-     * Returns the ad data associated with the given ad position, or {@code null} if there is
-     * no ad at this position.
-     */
     TransferAd getPlacedAd(final int position) {
         final int index = binarySearch(adjustedAdPositions, 0, placedCount, position);
         if (index < 0) {
@@ -173,19 +148,12 @@ class TransferPlacementData {
         return transferAds[index];
     }
 
-    /**
-     * Returns all placed ad positions. This method allocates new memory on every invocation. Do
-     * not call it from performance critical code.
-     */
     int[] getPlacedAdPositions() {
         int[] positions = new int[placedCount];
         System.arraycopy(adjustedAdPositions, 0, positions, 0, placedCount);
         return positions;
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#getOriginalPosition(int)
-     */
     int getOriginalPosition(final int position) {
         final int index = binarySearch(adjustedAdPositions, 0, placedCount, position);
 
@@ -198,18 +166,12 @@ class TransferPlacementData {
         return NOT_FOUND;
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#getAdjustedPosition(int)
-     */
     int getAdjustedPosition(final int originalPosition) {
         // This is an ad. Since binary search doesn't properly handle dups, find the first non-ad.
         int index = binarySearchGreaterThan(driginalAdPositions, placedCount, originalPosition);
         return originalPosition + index;
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#getOriginalCount(int)
-     */
     int getOriginalCount(final int count) {
         if (count == 0) {
             return 0;
@@ -220,9 +182,6 @@ class TransferPlacementData {
         return (originalPos == NOT_FOUND) ? NOT_FOUND : originalPos + 1;
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#getAdjustedCount(int)
-     */
     int getAdjustedCount(final int originalCount) {
         if (originalCount == 0) {
             return 0;
@@ -230,11 +189,6 @@ class TransferPlacementData {
         return getAdjustedPosition(originalCount - 1) + 1;
     }
 
-    /**
-     * Clears the ads in the given range. After calling this method, the ad positions
-     * will be removed from the placed ad positions and put back into the desired ad insertion
-     * positions.
-     */
     int clearAdsInRange(final int adjustedStartRange, final int adjustedEndRange) {
         // Temporary arrays to store the cleared positions. Using temporary arrays makes it
         // easy to debug what positions are being cleared.
@@ -294,10 +248,6 @@ class TransferPlacementData {
         return clearCount;
     }
 
-    /**
-     * Clears the ads in the given range. After calling this method the ad's position
-     * will be back to the desired insertion positions.
-     */
     void clearAds() {
         if (placedCount == 0) {
             return;
@@ -306,9 +256,6 @@ class TransferPlacementData {
         clearAdsInRange(0, adjustedAdPositions[placedCount - 1] + 1);
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#insertItem(int)
-     */
     void insertItem(final int originalPosition) {
 
         // Increment desired arrays.
@@ -328,9 +275,6 @@ class TransferPlacementData {
         }
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#removeItem(int)
-     */
     void removeItem(final int originalPosition) {
         // When removing items, we only decrement ad position values *greater* than the original
         // position we're removing. The original position associated with an ad is the original
@@ -354,9 +298,6 @@ class TransferPlacementData {
         }
     }
 
-    /**
-     * @see com.mopub.nativeads.MoPubStreamAdPlacer#moveItem(int, int)
-     */
     void moveItem(final int originalPosition, final int newPosition) {
         removeItem(originalPosition);
         insertItem(newPosition);
@@ -396,9 +337,6 @@ class TransferPlacementData {
         return index;
     }
 
-    /**
-     * Copied from Arrays.java, which isn't available until Gingerbread.
-     */
     private static int binarySearch(int[] array, int startIndex, int endIndex, int value) {
         int lo = startIndex;
         int hi = endIndex - 1;

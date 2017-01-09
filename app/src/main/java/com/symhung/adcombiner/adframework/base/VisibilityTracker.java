@@ -23,21 +23,10 @@ import java.util.WeakHashMap;
 public class VisibilityTracker {
     private static final String TAG = VisibilityTracker.class.getSimpleName();
     
-    // Time interval to use for throttling visibility checks.
     private static final int VISIBILITY_THROTTLE_MILLIS = 100;
-
-    // Trim the tracked views after this many accesses. This protects us against tracking
-    // too many views if the developer uses the adapter for multiple ListViews. It also
-    // limits the memory leak if a developer forgets to call destroy().
     static final int NUM_ACCESSES_BEFORE_TRIMMING = 50;
-
-    // Temporary array of trimmed views so that we don't allocate this on every trim.
     private final ArrayList<View> trimmedViews;
-
-    // Incrementing access counter. Use a long to support very long-lived apps.
     private long accessCounter = 0;
-
-    // Listener that passes all visible and invisible views when a visibility check occurs
     public interface VisibilityTrackerListener {
         void onVisibilityChanged(List<View> visibleViews, List<View> invisibleViews);
     }
@@ -53,22 +42,16 @@ public class VisibilityTracker {
         View mRootView;
     }
 
-    // Views that are being tracked, mapped to the min viewable percentage
     private final Map<View, TrackingInfo> trackedViews;
 
-    // Object to check actual visibility
     private final VisibilityChecker mVisibilityChecker;
 
-    // Callback listener
     private VisibilityTrackerListener mVisibilityTrackerListener;
 
-    // Runnable to run on each visibility loop
     private final VisibilityRunnable mVisibilityRunnable;
 
-    // Handler for visibility
     private final Handler mVisibilityHandler;
 
-    // Whether the visibility runnable is scheduled
     private boolean mIsVisibilityScheduled;
 
     public VisibilityTracker(final Context context) {
@@ -128,9 +111,6 @@ public class VisibilityTracker {
         mVisibilityTrackerListener = visibilityTrackerListener;
     }
 
-    /**
-     * Tracks the given view for visibility.
-     */
     public void addView(final View view, final int minPercentageViewed) {
         addView(view, view, minPercentageViewed);
     }
@@ -178,25 +158,16 @@ public class VisibilityTracker {
         trimmedViews.clear();
     }
 
-    /**
-     * Stops tracking a view, cleaning any pending tracking
-     */
     private void removeView(final View view) {
         trackedViews.remove(view);
     }
 
-    /**
-     * Immediately clear all views. Useful for when we re-request ads for an ad placer
-     */
     private void clear() {
         trackedViews.clear();
         mVisibilityHandler.removeMessages(0);
         mIsVisibilityScheduled = false;
     }
 
-    /**
-     * Destroy the visibility tracker, preventing it from future use.
-     */
     public void destroy() {
         clear();
         final ViewTreeObserver viewTreeObserver = weakViewTreeObserver.get();
@@ -256,19 +227,12 @@ public class VisibilityTracker {
     }
 
     private static class VisibilityChecker {
-        // A rect to use for hit testing. Create this once to avoid excess garbage collection
         private final Rect clipRect = new Rect();
 
-        /**
-         * Whether the visible time has elapsed from the start time. Easily mocked for testing.
-         */
         boolean hasRequiredTimeElapsed(final long startTimeMillis, final int minTimeViewed) {
             return SystemClock.uptimeMillis() - startTimeMillis >= minTimeViewed;
         }
 
-        /**
-         * Whether the view is at least certain % visible
-         */
         boolean isVisible(final View rootView, final View view, final int minPercentageViewed) {
             // ListView & GridView both call detachFromParent() for views that can be recycled for
             // new data. This is one of the rare instances where a view will have a null parent for

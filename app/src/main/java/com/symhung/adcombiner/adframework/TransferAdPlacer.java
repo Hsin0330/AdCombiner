@@ -21,10 +21,7 @@ import java.util.WeakHashMap;
  */
 
 public class TransferAdPlacer {
-    /**
-     * Constant representing that the view type for a given position is a regular content item
-     * instead of an ad.
-     */
+
     public static final int CONTENT_VIEW_TYPE = 0;
     private static final int DEFAULT_AD_VIEW_TYPE = 1;
     private final static TransferAdLoadedListener EMPTY_NATIVE_AD_LOADED_LISTENER =
@@ -95,18 +92,6 @@ public class TransferAdPlacer {
         visibleRangeEnd = 0;
     }
 
-    /**
-     * Sets a listener that will be called after the SDK loads new ads from the server and places
-     * them into your stream.
-     *
-     * The listener will be active between when you call {@link #loadAds} and when you call {@link
-     * #destroy()}. You can also set the listener to {@code null} to remove the listener.
-     *
-     * Note that there is not a one to one correspondence between calls to {@link #loadAds} and this
-     * listener. The SDK will call the listener every time an ad loads.
-     *
-     * @param listener The listener.
-     */
     void setAdLoadedListener(final TransferAdLoadedListener listener) {
         adLoadedListener = (listener == null) ? EMPTY_NATIVE_AD_LOADED_LISTENER : listener;
     }
@@ -169,69 +154,21 @@ public class TransferAdPlacer {
         hasPlacedAds = true;
     }
 
-    /**
-     * Inserts ads that should appear in the given range.
-     *
-     * By default, the ad placer will place ads withing the first 10 positions in your stream,
-     * according to the positions you've specified. You can use this method as your user scrolls
-     * through your stream to place ads into the currently visible range.
-     *
-     * This method takes advantage of a short-lived in memory ad cache, and will immediately place
-     * any ads from the cache. If there are no ads in the cache, this method will load additional
-     * ads from the server and place them once they are loaded. If you call {@code placeAdsInRange}
-     * again before ads are retrieved from the server, the new ads will show in the new positions
-     * rather than the old positions.
-     *
-     * You can pass any integer as a startPosition and endPosition for the range, including negative
-     * numbers or numbers greater than the current stream item count. The ad placer will only place
-     * ads between 0 and item count.
-     *
-     * @param startPosition The start of the range in which to place ads, inclusive.
-     * @param endPosition The end of the range in which to place ads, exclusive.
-     */
     void placeAdsInRange(final int startPosition, final int endPosition) {
         visibleRangeStart = startPosition;
         visibleRangeEnd = Math.min(endPosition, startPosition + MAX_VISIBLE_RANGE);
         notifyNeedsPlacement();
     }
 
-    /**
-     * Whether the given position is an ad.
-     *
-     * This will return {@code true} only if there is an ad loaded for this position. You can listen
-     * for ads to load using {@link TransferAdLoadedListener#onAdLoaded(int)}.
-     *
-     * @param position The position to check for an ad, expressed in terms of the position in the
-     * stream including ads.
-     * @return Whether there is an ad at the given position.
-     */
     boolean isAd(final int position) {
         return placementData.isPlacedAd(position);
     }
 
-    /**
-     * Stops loading ads, immediately clearing any ads currently in the stream.
-     *
-     * This method also stops ads from loading as the user moves through the stream. If you want to
-     * just remove ads but want to continue loading them, call {@link #removeAdsInRange(int, int)}.
-     *
-     * When ads are cleared, {@link TransferAdLoadedListener#onAdRemoved} will be called for each
-     * ad that is removed from the stream.
-     */
     void clearAds() {
         removeAdsInRange(0, itemCount);
         adSource.clear();
     }
 
-    /**
-     * Destroys the ad placer, preventing it from future use.
-     *
-     * You must call this method before the hosting activity for this class is destroyed in order to
-     * avoid a memory leak. Typically you should destroy the adapter in the life-cycle method that
-     * is counterpoint to the method you used to create the adapter. For example, if you created the
-     * adapter in {@code Fragment#onCreateView} you should destroy it in {code
-     * Fragment#onDestroyView}.
-     */
     public void destroy() {
         placementHandler.removeMessages(0);
         adSource.clear();
@@ -259,11 +196,6 @@ public class TransferAdPlacer {
         return adSource.createView(context, viewGroup);
     }
 
-    /**
-     * Given an ad and a view, attaches the ad data to the view and prepares the ad for display.
-     * @param transferAd the ad to bind.
-     * @param adView the view to bind it to.
-     */
     void bindAdView(TransferAd transferAd, View adView) {
         WeakReference<View> mappedViewRef = viewMap.get(transferAd);
         View mappedView = null;
@@ -278,15 +210,6 @@ public class TransferAdPlacer {
         }
     }
 
-    /**
-     * Removes ads in the given range from [originalStartPosition, originalEndPosition).
-     *
-     * @param originalStartPosition The start position to clear (inclusive), expressed as the original content
-     * position before ads were inserted.
-     * @param originalEndPosition The position after end position to clear (exclusive), expressed as the
-     * original content position before ads were inserted.
-     * @return The number of ads removed.
-     */
     int removeAdsInRange(int originalStartPosition, int originalEndPosition) {
         int[] positions = placementData.getPlacedAdPositions();
 
@@ -319,13 +242,6 @@ public class TransferAdPlacer {
         return clearedAdsCount;
     }
 
-    /**
-     * Returns the number of ad view types that can be placed by this ad placer. The number of
-     * possible ad view types is currently 1, but this is subject to change in future SDK versions.
-     *
-     * @return The number of ad view types.
-     * @see #getAdViewType
-     */
     int getAdViewTypeCount() {
 //        return adSource.getAdRendererCount();
         return 1;
@@ -341,61 +257,22 @@ public class TransferAdPlacer {
         return DEFAULT_AD_VIEW_TYPE;
     }
 
-    /**
-     * Returns the original position of an item considering ads in the stream.
-     *
-     * For example if your stream looks like:
-     *
-     * {@code Item0 Ad Item1 Item2 Ad Item3 </code>
-     *
-     * {@code getOriginalPosition(5)} will return {@code 3}.
-     *
-     * @param position The adjusted position.
-     * @return The original position before placing ads.
-     */
     int getOriginalPosition(final int position) {
         return placementData.getOriginalPosition(position);
     }
 
-    /**
-     * Returns the position of an item considering ads in the stream.
-     *
-     * @param originalPosition The original position.
-     * @return The position adjusted by placing ads.
-     */
     int getAdjustedPosition(final int originalPosition) {
         return placementData.getAdjustedPosition(originalPosition);
     }
 
-    /**
-     * Returns the original number of items considering ads in the stream.
-     *
-     * @param count The number of items in the stream.
-     * @return The original number of items before placing ads.
-     */
     public int getOriginalCount(final int count) {
         return placementData.getOriginalCount(count);
     }
 
-    /**
-     * Returns the number of items considering ads in the stream.
-     *
-     * @param originalCount The original number of items.
-     * @return The number of items adjusted by placing ads.
-     */
     int getAdjustedCount(final int originalCount) {
         return placementData.getAdjustedCount(originalCount);
     }
 
-    /**
-     * Sets the original number of items in your stream.
-     *
-     * You must call this method so that the placer knows where valid positions are to place ads.
-     * After calling this method, the ad placer will call {@link
-     * TransferAdLoadedListener#onAdLoaded (int)} each time an ad is loaded in the stream.
-     *
-     * @param originalCount The original number of items.
-     */
     void setItemCount(final int originalCount) {
         itemCount = placementData.getAdjustedCount(originalCount);
 
@@ -405,66 +282,14 @@ public class TransferAdPlacer {
         }
     }
 
-    /**
-     * Inserts a content row at the given position, adjusting ad positions accordingly.
-     *
-     * Use this method if you are inserting an item into your stream and want to increment ad
-     * positions based on that new item.
-     *
-     * For example if your stream looks like:
-     *
-     * {@code Item0 Ad Item1 Item2 Ad Item3}
-     *
-     * and you insert an item at position 2, your new stream will look like:
-     *
-     * {@code Item0 Ad Item1 Item2 NewItem Ad Item3}
-     *
-     * @param originalPosition The position at which to add an item. If you have an adjusted
-     * position, you will need to call {@link #getOriginalPosition} to get this value.
-     */
     void insertItem(final int originalPosition) {
         placementData.insertItem(originalPosition);
     }
 
-    /**
-     * Removes the content row at the given position, adjusting ad positions accordingly.
-     *
-     * Use this method if you are removing an item from your stream and want to decrement ad
-     * positions based on that removed item.
-     *
-     * For example if your stream looks like:
-     *
-     * {@code Item0 Ad Item1 Item2 Ad Item3}
-     *
-     * and you remove an item at position 2, your new stream will look like:
-     *
-     * {@code Item0 Ad Item1 Ad Item3}
-     *
-     * @param originalPosition The position at which to add an item. If you have an adjusted
-     * position, you will need to call {@link #getOriginalPosition} to get this value.
-     */
     void removeItem(final int originalPosition) {
         placementData.removeItem(originalPosition);
     }
 
-    /**
-     * Moves the content row at the given position adjusting ad positions accordingly.
-     *
-     * Use this method if you are moving an item in your stream and want to have ad positions move
-     * as well.
-     *
-     * For example if your stream looks like:
-     *
-     * {@code Item0 Ad Item1 Item2 Ad Item3}
-     *
-     * and you move item at position 2 to position 3, your new stream will look like:
-     *
-     * {@code Item0 Ad Item1 Ad Item3 Item2}
-     *
-     * @param originalPosition The position from which to move an item. If you have an adjusted
-     * position, you will need to call {@link #getOriginalPosition} to get this value.
-     * @param newPosition The new position, also expressed in terms of the original position.
-     */
     public void moveItem(final int originalPosition, final int newPosition) {
         placementData.moveItem(originalPosition, newPosition);
     }
@@ -480,9 +305,6 @@ public class TransferAdPlacer {
         placementHandler.post(placementRunnable);
     }
 
-    /**
-     * Places ads using the current visible range.
-     */
     private void placeAds() {
         // Place ads within the visible range
         if (!tryPlaceAdsInRange(visibleRangeStart, visibleRangeEnd)) {
@@ -495,14 +317,6 @@ public class TransferAdPlacer {
         tryPlaceAdsInRange(visibleRangeEnd, visibleRangeEnd + RANGE_BUFFER);
     }
 
-    /**
-     * Attempts to place ads in the range [start, end], returning false if there is no ad available
-     * to be placed.
-     *
-     * @param start The start of the range in which to place ads, inclusive.
-     * @param end The end of the range in which to place ads, exclusive.
-     * @return false if there is no ad available to be placed.
-     */
     private boolean tryPlaceAdsInRange(final int start, final int end) {
         int position = start;
         int lastPosition = end - 1;

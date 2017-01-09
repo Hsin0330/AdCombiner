@@ -11,9 +11,7 @@ import java.util.List;
  */
 
 public class Position {
-    /**
-     * Constant indicating that ad positions should not repeat.
-     */
+
     public static final int NO_REPEAT = Integer.MAX_VALUE;
 
     private final ArrayList<Integer> mFixedPositions = new ArrayList<Integer>();
@@ -23,12 +21,6 @@ public class Position {
     public Position() {
     }
 
-    /**
-     * Specifies a fixed ad position.
-     *
-     * @param position The ad position.
-     * @return This object for easy use in chained setters.
-     */
     public Position addFixedPosition(final int position) {
         if (!Preconditions.NoThrow.checkArgument(position >= 0)) {
             return this;
@@ -42,11 +34,6 @@ public class Position {
         return this;
     }
 
-    /**
-     * Returns an ordered array of fixed ad positions.
-     *
-     * @return Fixed ad positions.
-     */
     public List<Integer> getFixedPositions() {
         return mFixedPositions;
     }
@@ -60,13 +47,6 @@ public class Position {
         return this;
     }
 
-    /**
-     * Enables showing ads ad at a repeated interval.
-     *
-     * @param interval The frequency at which to show ads. Must be an integer greater than 1 or
-     * the constant NO_REPEAT.
-     * @return This object for easy use in chained setters.
-     */
     public Position enableRepeatingPositions(final int interval) {
         if (!Preconditions.NoThrow.checkArgument(
                 interval > 1, "Repeating interval must be greater than 1")) {
@@ -77,14 +57,6 @@ public class Position {
         return this;
     }
 
-    /**
-     * Returns the repeating ad interval.
-     *
-     * Repeating ads start after the last fixed position. Returns {@link #NO_REPEAT} if there is
-     * no repeating interval.
-     *
-     * @return The repeating ad interval.
-     */
     public int getRepeatingInterval() {
         return mRepeatInterval;
     }

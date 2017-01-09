@@ -1,6 +1,6 @@
-package com.symhung.adcombiner.adframework;
+package com.symhung.adcombiner.adframework.base;
 
-import com.symhung.adcombiner.adframework.transfer.TransferAd;
+import com.symhung.adcombiner.adframework.base.TransferAd;
 
 /**
  * Created by HsinHung on 2017/1/6.

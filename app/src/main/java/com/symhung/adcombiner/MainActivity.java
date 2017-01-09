@@ -6,7 +6,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.widget.RelativeLayout;
 
 import com.mopub.nativeads.MoPubStaticNativeAdRenderer;
 import com.mopub.nativeads.ViewBinder;
@@ -28,7 +27,6 @@ public class MainActivity extends BaseActivity {
 
     private Toolbar toolbar;
     private RecyclerView recyclerView;
-    private RelativeLayout adBanner;
 
     private TransferAdRecyclerAdapter transferAdRecyclerAdapter;
     private TravelLocationAdapter adapter;
@@ -58,8 +56,6 @@ public class MainActivity extends BaseActivity {
     private void initViews() {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        adBanner = (RelativeLayout) findViewById(R.id.ad_banner);
 
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));

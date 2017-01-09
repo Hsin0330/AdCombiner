@@ -1,8 +1,6 @@
 package com.symhung.adcombiner.adframework;
 
 import android.app.Activity;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -32,37 +30,35 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
     // RecyclerView ad views will have negative types to avoid colliding with original view types.
     static final int NATIVE_AD_VIEW_TYPE_BASE = -56;
 
-    public enum ContentChangeStrategy {
+    enum ContentChangeStrategy {
         INSERT_AT_END, MOVE_ALL_ADS_WITH_CONTENT, KEEP_ADS_FIXED
     }
 
-    @NonNull
-    private final RecyclerView.AdapterDataObserver mAdapterDataObserver;
-    @Nullable
-    private RecyclerView mRecyclerView;
-    @NonNull private final TransferAdPlacer mStreamAdPlacer;
-    @NonNull private final RecyclerView.Adapter mOriginalAdapter;
-    @NonNull private final VisibilityTracker mVisibilityTracker;
-    @NonNull private final WeakHashMap<View, Integer> mViewPositionMap;
+    private final RecyclerView.AdapterDataObserver adapterDataObserver;
+    private RecyclerView recyclerView;
+    private final TransferAdPlacer transferAdPlacer;
+    private final RecyclerView.Adapter adapter;
+    private final VisibilityTracker visibilityTracker;
+    private final WeakHashMap<View, Integer> viewPositionMap;
 
-    @NonNull private ContentChangeStrategy mStrategy = INSERT_AT_END;
-    @Nullable private TransferAdLoadedListener mAdLoadedListener;
+    private ContentChangeStrategy mStrategy = INSERT_AT_END;
+    private TransferAdLoadedListener adLoadedListener;
 
-    public TransferAdRecyclerAdapter(@NonNull Activity activity,
-                                     @NonNull RecyclerView.Adapter originalAdapter,
-                                     @NonNull TransferAdSource transferAdSource,
-                                     @NonNull Position adPositioning) {
+    public TransferAdRecyclerAdapter(Activity activity,
+                                     RecyclerView.Adapter originalAdapter,
+                                     TransferAdSource transferAdSource,
+                                     Position adPositioning) {
         this(new TransferAdPlacer(activity, transferAdSource, adPositioning), originalAdapter,
                 new VisibilityTracker(activity));
     }
 
-    TransferAdRecyclerAdapter(@NonNull final TransferAdPlacer streamAdPlacer,
-                         @NonNull final RecyclerView.Adapter originalAdapter,
-                         @NonNull final VisibilityTracker visibilityTracker) {
-        mViewPositionMap = new WeakHashMap<>();
-        mOriginalAdapter = originalAdapter;
-        mVisibilityTracker = visibilityTracker;
-        mVisibilityTracker.setVisibilityTrackerListener(new VisibilityTracker.VisibilityTrackerListener() {
+    private TransferAdRecyclerAdapter(final TransferAdPlacer streamAdPlacer,
+                                      final RecyclerView.Adapter originalAdapter,
+                                      final VisibilityTracker visibilityTracker) {
+        viewPositionMap = new WeakHashMap<>();
+        adapter = originalAdapter;
+        this.visibilityTracker = visibilityTracker;
+        this.visibilityTracker.setVisibilityTrackerListener(new VisibilityTracker.VisibilityTrackerListener() {
             @Override
             public void onVisibilityChanged(final List<View> visibleViews,
                                             final List<View> invisibleViews) {
@@ -72,10 +68,10 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
 
 
 
-        setHasStableIdsInternal(mOriginalAdapter.hasStableIds());
+        setHasStableIdsInternal(adapter.hasStableIds());
 
-        mStreamAdPlacer = streamAdPlacer;
-        mStreamAdPlacer.setAdLoadedListener(new TransferAdLoadedListener() {
+        transferAdPlacer = streamAdPlacer;
+        transferAdPlacer.setAdLoadedListener(new TransferAdLoadedListener() {
             @Override
             public void onAdLoaded(final int position) {
                 handleAdLoaded(position);
@@ -86,28 +82,28 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
                 handleAdRemoved(position);
             }
         });
-        mStreamAdPlacer.setItemCount(mOriginalAdapter.getItemCount());
+        transferAdPlacer.setItemCount(adapter.getItemCount());
 
-        mAdapterDataObserver = new RecyclerView.AdapterDataObserver() {
+        adapterDataObserver = new RecyclerView.AdapterDataObserver() {
             @Override
             public void onChanged() {
-                mStreamAdPlacer.setItemCount(mOriginalAdapter.getItemCount());
+                transferAdPlacer.setItemCount(adapter.getItemCount());
                 notifyDataSetChanged();
             }
 
             @Override
             public void onItemRangeChanged(final int positionStart, final int itemCount) {
-                int adjustedEndPosition = mStreamAdPlacer.getAdjustedPosition(positionStart + itemCount - 1);
-                int adjustedStartPosition = mStreamAdPlacer.getAdjustedPosition(positionStart);
+                int adjustedEndPosition = transferAdPlacer.getAdjustedPosition(positionStart + itemCount - 1);
+                int adjustedStartPosition = transferAdPlacer.getAdjustedPosition(positionStart);
                 int adjustedCount = adjustedEndPosition - adjustedStartPosition + 1;
                 notifyItemRangeChanged(adjustedStartPosition, adjustedCount);
             }
 
             @Override
             public void onItemRangeInserted(final int positionStart, final int itemCount) {
-                final int adjustedStartPosition = mStreamAdPlacer.getAdjustedPosition(positionStart);
-                final int newOriginalCount = mOriginalAdapter.getItemCount();
-                mStreamAdPlacer.setItemCount(newOriginalCount);
+                final int adjustedStartPosition = transferAdPlacer.getAdjustedPosition(positionStart);
+                final int newOriginalCount = adapter.getItemCount();
+                transferAdPlacer.setItemCount(newOriginalCount);
                 final boolean addingToEnd = positionStart + itemCount >= newOriginalCount;
                 if (KEEP_ADS_FIXED == mStrategy
                         || (INSERT_AT_END == mStrategy
@@ -116,7 +112,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
                 } else {
                     for (int i = 0; i < itemCount; i++) {
                         // We insert itemCount items at the original position, moving ads downstream.
-                        mStreamAdPlacer.insertItem(positionStart);
+                        transferAdPlacer.insertItem(positionStart);
                     }
                     notifyItemRangeInserted(adjustedStartPosition, itemCount);
                 }
@@ -124,22 +120,22 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
 
             @Override
             public void onItemRangeRemoved(final int positionStart, final int itemsRemoved) {
-                int adjustedStartPosition = mStreamAdPlacer.getAdjustedPosition(positionStart);
-                final int newOriginalCount = mOriginalAdapter.getItemCount();
-                mStreamAdPlacer.setItemCount(newOriginalCount);
+                int adjustedStartPosition = transferAdPlacer.getAdjustedPosition(positionStart);
+                final int newOriginalCount = adapter.getItemCount();
+                transferAdPlacer.setItemCount(newOriginalCount);
                 final boolean removingFromEnd = positionStart + itemsRemoved >= newOriginalCount;
                 if (KEEP_ADS_FIXED == mStrategy
                         || (INSERT_AT_END == mStrategy
                         && removingFromEnd)) {
                     notifyDataSetChanged();
                 } else {
-                    final int oldAdjustedCount = mStreamAdPlacer.getAdjustedCount(newOriginalCount + itemsRemoved);
+                    final int oldAdjustedCount = transferAdPlacer.getAdjustedCount(newOriginalCount + itemsRemoved);
                     for (int i = 0; i < itemsRemoved; i++) {
                         // We remove itemsRemoved items at the original position.
-                        mStreamAdPlacer.removeItem(positionStart);
+                        transferAdPlacer.removeItem(positionStart);
                     }
 
-                    final int itemsRemovedIncludingAds = oldAdjustedCount - mStreamAdPlacer.getAdjustedCount(newOriginalCount);
+                    final int itemsRemovedIncludingAds = oldAdjustedCount - transferAdPlacer.getAdjustedCount(newOriginalCount);
                     // Need to move the start position back by the # of ads removed.
                     adjustedStartPosition -= itemsRemovedIncludingAds - itemsRemoved;
                     notifyItemRangeRemoved(adjustedStartPosition, itemsRemovedIncludingAds);
@@ -153,51 +149,31 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
             }
         };
 
-        mOriginalAdapter.registerAdapterDataObserver(mAdapterDataObserver);
+        adapter.registerAdapterDataObserver(adapterDataObserver);
     }
 
     @Override
     public void onAttachedToRecyclerView(final RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
-        mRecyclerView = recyclerView;
+        this.recyclerView = recyclerView;
     }
 
     @Override
     public void onDetachedFromRecyclerView(final RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
-        mRecyclerView = null;
+        this.recyclerView = null;
     }
 
-    /**
-     * Sets a listener that will be called after the SDK loads new ads from the server and places
-     * them into your stream.
-     *
-     * The listener will be active between when you call {@link #loadAds} and when you call
-     * destroy(). You can also set the listener to {@code null} to remove the listener.
-     *
-     * Note that there is not a one to one correspondence between calls to {@link #loadAds} and this
-     * listener. The SDK will call the listener every time an ad loads.
-     *
-     * @param listener The listener.
-     */
-    public void setAdLoadedListener(@Nullable final TransferAdLoadedListener listener) {
-        mAdLoadedListener = listener;
+    public void setAdLoadedListener(final TransferAdLoadedListener listener) {
+        adLoadedListener = listener;
     }
 
-    /**
-     * Start loading ads from the MoPub server.
-     *
-     * We recommend using {@link #loadAds(String)} instead of this method, in
-     * order to pass targeting information to the server.
-     *
-     * @param adUnitId The ad unit ID to use when loading ads.
-     */
-    public void loadAds(@NonNull String adUnitId) {
-        mStreamAdPlacer.loadAds(adUnitId);
+    public void loadAds(String adUnitId) {
+        transferAdPlacer.loadAds(adUnitId);
     }
 
-    public static int computeScrollOffset(@NonNull final LinearLayoutManager linearLayoutManager,
-                                          @Nullable final RecyclerView.ViewHolder holder) {
+    private static int computeScrollOffset(final LinearLayoutManager linearLayoutManager,
+                                           final RecyclerView.ViewHolder holder) {
         if (holder == null) {
             return 0;
         }
@@ -221,21 +197,13 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         return offset;
     }
 
-    /**
-     * Refreshes ads in the adapter while preserving the scroll position.
-     *
-     * Call this instead of {@link #loadAds(String)} in order to preserve the
-     * scroll position in your view. Only usable with LinearLayoutManager or GridLayoutManager.
-     *
-     * @param adUnitId The ad unit ID to use when loading ads.
-     */
-    public void refreshAds(@NonNull String adUnitId) {
-        if (mRecyclerView == null) {
+    public void refreshAds(String adUnitId) {
+        if (recyclerView == null) {
             Log.w(TAG, "This adapter is not attached to a RecyclerView and cannot be refreshed.");
             return;
         }
 
-        final RecyclerView.LayoutManager layoutManager = mRecyclerView.getLayoutManager();
+        final RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
         if (layoutManager == null) {
             Log.w(TAG, "Can't refresh ads when there is no layout manager on a RecyclerView.");
             return;
@@ -247,28 +215,28 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
             // Get the range & offset of scroll position.
             LinearLayoutManager linearLayoutManager = (LinearLayoutManager) layoutManager;
             final int firstPosition = linearLayoutManager.findFirstVisibleItemPosition();
-            RecyclerView.ViewHolder holder = mRecyclerView.findViewHolderForLayoutPosition(firstPosition);
+            RecyclerView.ViewHolder holder = recyclerView.findViewHolderForLayoutPosition(firstPosition);
             final int scrollOffset = computeScrollOffset(linearLayoutManager, holder);
 
             // Calculate the range of ads not to remove ads from.
             int startOfRange = Math.max(0, firstPosition - 1);
-            while (mStreamAdPlacer.isAd(startOfRange) && startOfRange > 0) {
+            while (transferAdPlacer.isAd(startOfRange) && startOfRange > 0) {
                 startOfRange--;
             }
 
 
             final int itemCount = getItemCount();
             int endOfRange = linearLayoutManager.findLastVisibleItemPosition();
-            while (mStreamAdPlacer.isAd(endOfRange) && endOfRange < itemCount - 1) {
+            while (transferAdPlacer.isAd(endOfRange) && endOfRange < itemCount - 1) {
                 endOfRange++;
             }
 
-            final int originalStartOfRange = mStreamAdPlacer.getOriginalPosition(startOfRange);
-            final int originalEndOfRange = mStreamAdPlacer.getOriginalPosition(endOfRange);
-            final int endCount = mOriginalAdapter.getItemCount();
+            final int originalStartOfRange = transferAdPlacer.getOriginalPosition(startOfRange);
+            final int originalEndOfRange = transferAdPlacer.getOriginalPosition(endOfRange);
+            final int endCount = adapter.getItemCount();
 
-            mStreamAdPlacer.removeAdsInRange(originalEndOfRange, endCount);
-            final int numAdsRemoved = mStreamAdPlacer.removeAdsInRange(0, originalStartOfRange);
+            transferAdPlacer.removeAdsInRange(originalEndOfRange, endCount);
+            final int numAdsRemoved = transferAdPlacer.removeAdsInRange(0, originalStartOfRange);
 
             if (numAdsRemoved > 0) {
                 linearLayoutManager.scrollToPositionWithOffset(firstPosition - numAdsRemoved, scrollOffset);
@@ -289,7 +257,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
      * that is removed from the stream.
      */
     public void clearAds() {
-        mStreamAdPlacer.clearAds();
+        transferAdPlacer.clearAds();
     }
 
     /**
@@ -303,7 +271,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
      * @return Whether there is an ad at the given position.
      */
     public boolean isAd(final int position) {
-        return mStreamAdPlacer.isAd(position);
+        return transferAdPlacer.isAd(position);
     }
 
     /**
@@ -314,7 +282,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
      * @return The position adjusted by placing ads.
      */
     public int getAdjustedPosition(final int originalPosition) {
-        return mStreamAdPlacer.getAdjustedPosition(originalPosition);
+        return transferAdPlacer.getAdjustedPosition(originalPosition);
     }
 
     /**
@@ -325,7 +293,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
      * @return The original position before placing ads.
      */
     public int getOriginalPosition(final int position) {
-        return mStreamAdPlacer.getOriginalPosition(position);
+        return transferAdPlacer.getOriginalPosition(position);
     }
 
     /**
@@ -343,54 +311,54 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
      *     will never adjust ad positions when items are inserted or removed.</li>
      * </ul>
      */
-    public void setContentChangeStrategy(@NonNull ContentChangeStrategy strategy) {
+    public void setContentChangeStrategy(ContentChangeStrategy strategy) {
         mStrategy = strategy;
     }
 
     @Override
     public int getItemCount() {
-        return mStreamAdPlacer.getAdjustedCount(mOriginalAdapter.getItemCount());
+        return transferAdPlacer.getAdjustedCount(adapter.getItemCount());
     }
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(final ViewGroup parent, final int viewType) {
-        if (viewType >= NATIVE_AD_VIEW_TYPE_BASE && viewType <= NATIVE_AD_VIEW_TYPE_BASE + mStreamAdPlacer.getAdViewTypeCount()) {
+        if (viewType >= NATIVE_AD_VIEW_TYPE_BASE && viewType <= NATIVE_AD_VIEW_TYPE_BASE + transferAdPlacer.getAdViewTypeCount()) {
             // Create the view and a view holder.
-//            final MoPubAdRenderer adRenderer = mStreamAdPlacer.getAdRendererForViewType(viewType - NATIVE_AD_VIEW_TYPE_BASE);
+//            final MoPubAdRenderer adRenderer = transferAdPlacer.getAdRendererForViewType(viewType - NATIVE_AD_VIEW_TYPE_BASE);
 //            if (adRenderer == null) {
 //                Log.w(TAG, "No view binder was registered for ads in MoPubRecyclerAdapter.");
 //                // This will cause a null pointer exception.
 //                return null;
 //            }
-            return new TransferAdViewHolder(mStreamAdPlacer.createAdView(parent.getContext(), parent));
+            return new TransferAdViewHolder(transferAdPlacer.createAdView(parent.getContext(), parent));
         }
 
-        return mOriginalAdapter.onCreateViewHolder(parent, viewType);
+        return adapter.onCreateViewHolder(parent, viewType);
     }
 
     @Override
     public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
-        Object adResponse = mStreamAdPlacer.getAdData(position);
+        Object adResponse = transferAdPlacer.getAdData(position);
         if (adResponse != null) {
-            mStreamAdPlacer.bindAdView((TransferAd) adResponse, holder.itemView);
+            transferAdPlacer.bindAdView((TransferAd) adResponse, holder.itemView);
             return;
         }
 
-        mViewPositionMap.put(holder.itemView, position);
-        mVisibilityTracker.addView(holder.itemView, 0);
+        viewPositionMap.put(holder.itemView, position);
+        visibilityTracker.addView(holder.itemView, 0);
 
         //noinspection unchecked
-        mOriginalAdapter.onBindViewHolder(holder, mStreamAdPlacer.getOriginalPosition(position));
+        adapter.onBindViewHolder(holder, transferAdPlacer.getOriginalPosition(position));
     }
 
     @Override
     public int getItemViewType(final int position) {
-        int type = mStreamAdPlacer.getAdViewType(position);
+        int type = transferAdPlacer.getAdViewType(position);
         if (type != TransferAdPlacer.CONTENT_VIEW_TYPE) {
             return NATIVE_AD_VIEW_TYPE_BASE + type;
         }
 
-        return mOriginalAdapter.getItemViewType(mStreamAdPlacer.getOriginalPosition(position));
+        return adapter.getItemViewType(transferAdPlacer.getOriginalPosition(position));
     }
 
     @Override
@@ -398,38 +366,29 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         setHasStableIdsInternal(hasStableIds);
 
         // We can only setHasStableIds when there are no observers on the adapter.
-        mOriginalAdapter.unregisterAdapterDataObserver(mAdapterDataObserver);
-        mOriginalAdapter.setHasStableIds(hasStableIds);
-        mOriginalAdapter.registerAdapterDataObserver(mAdapterDataObserver);
+        adapter.unregisterAdapterDataObserver(adapterDataObserver);
+        adapter.setHasStableIds(hasStableIds);
+        adapter.registerAdapterDataObserver(adapterDataObserver);
     }
 
     public void destroy() {
-        mOriginalAdapter.unregisterAdapterDataObserver(mAdapterDataObserver);
-        mStreamAdPlacer.destroy();
-        mVisibilityTracker.destroy();
+        adapter.unregisterAdapterDataObserver(adapterDataObserver);
+        transferAdPlacer.destroy();
+        visibilityTracker.destroy();
     }
 
-    /**
-     * Returns a stable negative item ID for ad items & calls getItemId on your original adapter for
-     * non-ad items.
-     *
-     * Returns {@link android.support.v7.widget.RecyclerView#NO_ID} if your original adapter does
-     * not have stable IDs.
-     *
-     * @inheritDoc
-     */
     @Override
     public long getItemId(final int position) {
-        if (!mOriginalAdapter.hasStableIds()) {
+        if (!adapter.hasStableIds()) {
             return RecyclerView.NO_ID;
         }
 
-        final Object adData = mStreamAdPlacer.getAdData(position);
+        final Object adData = transferAdPlacer.getAdData(position);
         if (adData != null) {
             return -System.identityHashCode(adData);
         }
 
-        return mOriginalAdapter.getItemId(mStreamAdPlacer.getOriginalPosition(position));
+        return adapter.getItemId(transferAdPlacer.getOriginalPosition(position));
     }
 
     // Notification methods to forward to the original adapter.
@@ -440,7 +399,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         }
 
         // noinspection unchecked
-        return mOriginalAdapter.onFailedToRecycleView(holder);
+        return adapter.onFailedToRecycleView(holder);
     }
 
     @Override
@@ -451,7 +410,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         }
 
         // noinspection unchecked
-        mOriginalAdapter.onViewAttachedToWindow(holder);
+        adapter.onViewAttachedToWindow(holder);
     }
 
     @Override
@@ -462,7 +421,7 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         }
 
         // noinspection unchecked
-        mOriginalAdapter.onViewDetachedFromWindow(holder);
+        adapter.onViewDetachedFromWindow(holder);
     }
 
     @Override
@@ -473,21 +432,21 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         }
 
         // noinspection unchecked
-        mOriginalAdapter.onViewRecycled(holder);
+        adapter.onViewRecycled(holder);
     }
     // End forwarded methods.
 
-    void handleAdLoaded(final int position) {
-        if (mAdLoadedListener != null) {
-            mAdLoadedListener.onAdLoaded(position);
+    private void handleAdLoaded(final int position) {
+        if (adLoadedListener != null) {
+            adLoadedListener.onAdLoaded(position);
         }
 
         notifyItemInserted(position);
     }
 
-    void handleAdRemoved(final int position) {
-        if (mAdLoadedListener != null) {
-            mAdLoadedListener.onAdRemoved(position);
+    private void handleAdRemoved(final int position) {
+        if (adLoadedListener != null) {
+            adLoadedListener.onAdRemoved(position);
         }
 
         notifyItemRemoved(position);
@@ -500,14 +459,14 @@ public class TransferAdRecyclerAdapter extends RecyclerView.Adapter<RecyclerView
         int min = Integer.MAX_VALUE;
         int max = 0;
         for (final View view : visibleViews) {
-            final Integer pos = mViewPositionMap.get(view);
+            final Integer pos = viewPositionMap.get(view);
             if (pos == null) {
                 continue;
             }
             min = Math.min(pos, min);
             max = Math.max(pos, max);
         }
-        mStreamAdPlacer.placeAdsInRange(min, max + 1);
+        transferAdPlacer.placeAdsInRange(min, max + 1);
     }
 
     /**

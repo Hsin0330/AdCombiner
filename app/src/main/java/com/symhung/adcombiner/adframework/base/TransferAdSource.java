@@ -3,8 +3,6 @@ package com.symhung.adcombiner.adframework.base;
 import android.content.Context;
 import android.os.Handler;
 import android.os.SystemClock;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -23,32 +21,24 @@ public abstract class TransferAdSource {
     private static final int MAXIMUM_RETRY_TIME_MILLISECONDS = 5 * 60 * 1000; // 5 minutes.
     static final int[] RETRY_TIME_ARRAY_MILLISECONDS = new int[]{1000, 3000, 5000, 25000, 60000, MAXIMUM_RETRY_TIME_MILLISECONDS};
 
-    @NonNull
     private final List<TimestampWrapper<TransferAd>> mNativeAdCache;
-    @NonNull private final Handler mReplenishCacheHandler;
-    @NonNull private final Runnable mReplenishCacheRunnable;
-    @NonNull private final AdRequestListener adRequestListener;
+    private final Handler mReplenishCacheHandler;
+    private final Runnable mReplenishCacheRunnable;
+    private final AdRequestListener adRequestListener;
 
     private boolean mRequestInFlight;
     private boolean mRetryInFlight;
     private int mCurrentRetries;
 
-    @Nullable
     private AdSourceListener mAdSourceListener;
 
-    @Nullable private AdLoader adLoader;
+    private AdLoader adLoader;
 
     public View createView(Context context, ViewGroup viewGroup) {
         return adLoader.createView(context, viewGroup);
     }
 
-    /**
-     * A listener for when ads are available for dequeueing.
-     */
     public interface AdSourceListener {
-        /**
-         * Called when the number of items available for goes from 0 to more than 0.
-         */
         void onAdsAvailable();
     }
 
@@ -57,8 +47,8 @@ public abstract class TransferAdSource {
                 new Handler());
     }
 
-    public TransferAdSource(@NonNull final List<TimestampWrapper<TransferAd>> nativeAdCache,
-                   @NonNull final Handler replenishCacheHandler) {
+    public TransferAdSource(final List<TimestampWrapper<TransferAd>> nativeAdCache,
+                   final Handler replenishCacheHandler) {
         mNativeAdCache = nativeAdCache;
         mReplenishCacheHandler = replenishCacheHandler;
         mReplenishCacheRunnable = new Runnable() {
@@ -90,8 +80,6 @@ public abstract class TransferAdSource {
 
             @Override
             public void onAdLoaded(TransferAd transferAd) {
-                // This can be null if the ad source was cleared as the AsyncTask is posting
-                // back to the UI handler. Drop this response.
                 if (adLoader == null) {
                     return;
                 }
@@ -111,11 +99,7 @@ public abstract class TransferAdSource {
         resetRetryTime();
     }
 
-    /**
-     * Sets a adSourceListener for determining when ads are available.
-     * @param adSourceListener An AdSourceListener.
-     */
-    public void setAdSourceListener(@Nullable final AdSourceListener adSourceListener) {
+    public void setAdSourceListener(final AdSourceListener adSourceListener) {
         mAdSourceListener = adSourceListener;
     }
 
@@ -134,11 +118,7 @@ public abstract class TransferAdSource {
         replenishCache();
     }
 
-    /**
-     * Clears the ad source, removing any currently queued ads.
-     */
     public void clear() {
-        // This will cleanup listeners to stop callbacks from handling old ad units
         if (adLoader != null) {
             adLoader.destroy();
             adLoader = null;
@@ -154,17 +134,6 @@ public abstract class TransferAdSource {
         resetRetryTime();
     }
 
-    /**
-     * Removes an ad from the front of the ad source cache.
-     *
-     * Dequeueing will automatically attempt to replenish the cache. Callers should dequeue ads as
-     * late as possible, typically immediately before rendering them into a view.
-     *
-     * Set the listener to {@code null} to remove the listener.
-     *
-     * @return Ad ad item that should be rendered into a view.
-     */
-    @Nullable
     public TransferAd dequeueAd() {
         final long now = SystemClock.uptimeMillis();
 
@@ -184,38 +153,27 @@ public abstract class TransferAdSource {
         return null;
     }
 
-    void updateRetryTime() {
+    private void updateRetryTime() {
         if (mCurrentRetries < RETRY_TIME_ARRAY_MILLISECONDS.length - 1) {
             mCurrentRetries++;
         }
     }
 
-    void resetRetryTime() {
+    private void resetRetryTime() {
         mCurrentRetries = 0;
     }
 
-    int getRetryTime() {
+    private int getRetryTime() {
         if (mCurrentRetries >= RETRY_TIME_ARRAY_MILLISECONDS.length) {
             mCurrentRetries = RETRY_TIME_ARRAY_MILLISECONDS.length - 1;
         }
         return RETRY_TIME_ARRAY_MILLISECONDS[mCurrentRetries];
     }
 
-    /**
-     * Replenish ads in the ad source cache.
-     *
-     * Calling this method is useful for warming the cache without dequeueing an ad.
-     */
-    void replenishCache() {
+    private void replenishCache() {
         if (!mRequestInFlight && adLoader != null && mNativeAdCache.size() < CACHE_LIMIT) {
             mRequestInFlight = true;
             adLoader.request();
         }
-    }
-
-    @NonNull
-    @Deprecated
-    AdRequestListener getAdRequestListener() {
-        return adRequestListener;
     }
 }

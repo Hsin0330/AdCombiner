@@ -6,20 +6,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.View;
 import android.widget.RelativeLayout;
 
-import com.mopub.nativeads.MoPubNative;
 import com.mopub.nativeads.MoPubStaticNativeAdRenderer;
-import com.mopub.nativeads.NativeAd;
-import com.mopub.nativeads.NativeErrorCode;
 import com.mopub.nativeads.ViewBinder;
 import com.symhung.adcombiner.adframework.TransferAdRecyclerAdapter;
-import com.symhung.adcombiner.adframework.base.AdLoader;
-import com.symhung.adcombiner.adframework.base.AdRequestListener;
 import com.symhung.adcombiner.adframework.base.Position;
-import com.symhung.adcombiner.adframework.mopub.MopubAdLoader;
-import com.symhung.adcombiner.adframework.base.TransferAd;
+import com.symhung.adcombiner.adframework.base.TransferAdSource;
 import com.symhung.adcombiner.adframework.mopub.MopubNativeAdSource;
 import com.symhung.adcombiner.base.BaseActivity;
 import com.symhung.adcombiner.models.TravelLocation;
@@ -40,57 +33,13 @@ public class MainActivity extends BaseActivity {
     private TransferAdRecyclerAdapter transferAdRecyclerAdapter;
     private TravelLocationAdapter adapter;
 
-    //mopub
-//    private MoPubNative moPubNative;
-//    private NativeAd nativeAd;
-
-//    private AdLoader adLoader;
-//    private TransferAd transferAd;
-
-    private final MoPubNative.MoPubNativeNetworkListener moPubNativeNetworkListener = new MoPubNative.MoPubNativeNetworkListener() {
-        @Override
-        public void onNativeLoad(NativeAd nativeAd) {
-//            MainActivity.this.nativeAd = nativeAd;
-//
-//            View adView = nativeAd.createAdView(MainActivity.this, null);
-//            nativeAd.prepare(adView);
-//            nativeAd.renderAdView(adView);
-//
-//            adBanner.addView(adView);
-        }
-
-        @Override
-        public void onNativeFail(NativeErrorCode errorCode) {
-
-        }
-    };
-
-    private final AdRequestListener adRequestListener = new AdRequestListener() {
-        @Override
-        public void onError() {
-
-        }
-
-        @Override
-        public void onAdLoaded(TransferAd transferAd) {
-            View adView = transferAd.createView(MainActivity.this, null);
-            transferAd.renderView(adView);
-
-            adBanner.addView(adView);
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initAds();
         initViews();
         queryData();
-
-//        moPubNative.makeRequest();
-//        adLoader.request();
     }
 
     @Override
@@ -102,24 +51,8 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-//        moPubRecyclerAdapter.destroy();
+        transferAdRecyclerAdapter.destroy();
         super.onDestroy();
-    }
-
-    private void initAds() {
-//        moPubNative = new MoPubNative(this, MY_AD_UNIT_ID, moPubNativeNetworkListener);
-//        ViewBinder viewBinder = new ViewBinder.Builder(R.layout.native_ad_layout)
-//                .mainImageId(R.id.native_ad_main_image)
-//                .iconImageId(R.id.native_ad_icon_image)
-//                .titleId(R.id.native_ad_title)
-//                .textId(R.id.native_ad_text)
-//                .privacyInformationIconImageId(R.id.native_ad_privacy_information_icon_image)
-//                .build();
-//        MoPubStaticNativeAdRenderer adRenderer = new MoPubStaticNativeAdRenderer(viewBinder);
-//        moPubNative.registerAdRenderer(adRenderer);
-
-//        adLoader = new MopubAdLoader(this, MY_AD_UNIT_ID).registerAdRenderer(adRenderer);
-//        adLoader.setAdRequestListener(adRequestListener);
     }
 
     private void initViews() {
@@ -143,13 +76,11 @@ public class MainActivity extends BaseActivity {
                 .build();
         MoPubStaticNativeAdRenderer adRenderer = new MoPubStaticNativeAdRenderer(viewBinder);
 
-        Position adPositioning = new Position().addFixedPosition(0).enableRepeatingPositions(5);
-
-        transferAdRecyclerAdapter = new TransferAdRecyclerAdapter(this, adapter, new MopubNativeAdSource(this, MY_AD_UNIT_ID).setMoPubAdRenderer(adRenderer), adPositioning);
-//        transferAdRecyclerAdapter.registerAdRenderer(adRenderer);
+        Position adPositioning = new Position().addFixedPosition(0).setEndPosition(15).enableRepeatingPositions(5);
+        TransferAdSource transferAdSource = new MopubNativeAdSource(this, MY_AD_UNIT_ID).setMoPubAdRenderer(adRenderer);
+        transferAdRecyclerAdapter = new TransferAdRecyclerAdapter(this, adapter, transferAdSource, adPositioning);
 
         recyclerView.setAdapter(transferAdRecyclerAdapter);
-//        recyclerView.setAdapter(adapter);
     }
 
     private void queryData() {

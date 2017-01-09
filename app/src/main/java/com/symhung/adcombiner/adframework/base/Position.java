@@ -1,9 +1,6 @@
 package com.symhung.adcombiner.adframework.base;
 
-import android.support.annotation.NonNull;
-
 import com.mopub.common.Preconditions;
-import com.mopub.nativeads.MoPubNativeAdPositioning;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,7 +16,8 @@ public class Position {
      */
     public static final int NO_REPEAT = Integer.MAX_VALUE;
 
-    @NonNull private final ArrayList<Integer> mFixedPositions = new ArrayList<Integer>();
+    private final ArrayList<Integer> mFixedPositions = new ArrayList<Integer>();
+    private int endPosition = -1;
     private int mRepeatInterval = NO_REPEAT;
 
     public Position() {
@@ -31,7 +29,6 @@ public class Position {
      * @param position The ad position.
      * @return This object for easy use in chained setters.
      */
-    @NonNull
     public Position addFixedPosition(final int position) {
         if (!Preconditions.NoThrow.checkArgument(position >= 0)) {
             return this;
@@ -50,9 +47,17 @@ public class Position {
      *
      * @return Fixed ad positions.
      */
-    @NonNull
     public List<Integer> getFixedPositions() {
         return mFixedPositions;
+    }
+
+    public int getEndPosition() {
+        return endPosition;
+    }
+
+    public Position setEndPosition(int endPosition) {
+        this.endPosition = endPosition;
+        return this;
     }
 
     /**
@@ -62,7 +67,6 @@ public class Position {
      * the constant NO_REPEAT.
      * @return This object for easy use in chained setters.
      */
-    @NonNull
     public Position enableRepeatingPositions(final int interval) {
         if (!Preconditions.NoThrow.checkArgument(
                 interval > 1, "Repeating interval must be greater than 1")) {
